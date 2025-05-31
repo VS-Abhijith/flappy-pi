@@ -5,11 +5,126 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flappy Pi</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to bottom, #70c5ce, #ffffff);
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      border: 3px solid #333;
+      background-color: #cceeff;
+      display: block;
+      margin: 20px auto;
+    }
+    #gameUI {
+      margin-top: 20px;
+    }
+    #startBtn {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
   <h1>Flappy Pi</h1>
+  <div id="gameUI">
+    <p id="score">Score: 0</p>
+    <p id="highScore">High Score: 0</p>
+    <button id="startBtn">Start Game</button>
+  </div>
   <canvas id="gameCanvas" width="320" height="480"></canvas>
   <script src="pi-sdk.js"></script>
-  <script src="game.js"></script>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const startBtn = document.getElementById("startBtn");
+    const scoreDisplay = document.getElementById("score");
+    const highScoreDisplay = document.getElementById("highScore");
+
+    let bird, pipes, score, highScore = 0, animationId;
+
+    function resetGame() {
+      bird = { x: 50, y: 150, width: 20, height: 20, gravity: 0.6, lift: -10, velocity: 0 };
+      pipes = [];
+      score = 0;
+      frame = 0;
+    }
+
+    document.addEventListener("keydown", () => {
+      bird.velocity = bird.lift;
+    });
+
+    function drawBird() {
+      ctx.fillStyle = "#ffeb3b";
+      ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+    }
+
+    function drawPipe(pipe) {
+      ctx.fillStyle = "#4CAF50";
+      ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
+      ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipe.width, pipe.bottom);
+    }
+
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      bird.velocity += bird.gravity;
+      bird.y += bird.velocity;
+      drawBird();
+
+      if (frame % 100 === 0) {
+        let top = Math.random() * 200 + 20;
+        let bottom = 480 - top - 100;
+        pipes.push({ x: 320, width: 40, top, bottom });
+      }
+
+      for (let i = 0; i < pipes.length; i++) {
+        pipes[i].x -= 2;
+        drawPipe(pipes[i]);
+
+        if (pipes[i].x + pipes[i].width === bird.x) {
+          score++;
+          scoreDisplay.textContent = `Score: ${score}`;
+          if (score > highScore) {
+            highScore = score;
+            highScoreDisplay.textContent = `High Score: ${highScore}`;
+          }
+        }
+
+        if (
+          bird.x < pipes[i].x + pipes[i].width &&
+          bird.x + bird.width > pipes[i].x &&
+          (bird.y < pipes[i].top || bird.y + bird.height > canvas.height - pipes[i].bottom)
+        ) {
+          cancelAnimationFrame(animationId);
+          alert("Game Over! Score: " + score);
+          return;
+        }
+      }
+
+      if (bird.y + bird.height >= canvas.height || bird.y <= 0) {
+        cancelAnimationFrame(animationId);
+        alert("Game Over! Score: " + score);
+        return;
+      }
+
+      frame++;
+      animationId = requestAnimationFrame(update);
+    }
+
+    startBtn.onclick = () => {
+      resetGame();
+      scoreDisplay.textContent = `Score: 0`;
+      update();
+    };
+  </script>
 </body>
 </html>
